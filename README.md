@@ -10,7 +10,7 @@ Vive en la barra de menú: cerrá la ventana y sigue corriendo arriba.
 ### Homebrew (recomendado)
 
 ```bash
-brew install --cask TUUSUARIO/tap/glasspomodoro
+brew install --cask AndresGM7/tap/glasspomodoro
 ```
 
 ### Manual

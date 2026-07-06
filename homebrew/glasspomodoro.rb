@@ -1,11 +1,11 @@
 cask "glasspomodoro" do
   version "1.0.0"
-  sha256 "REEMPLAZAR_CON_SHA256_DEL_ZIP"
+  sha256 "050622a86ac69055bd71e963f2bcb0f1aa46d3c1051ffeb1ad0f8775438f11a3"
 
-  url "https://github.com/TUUSUARIO/GlassPomodoro/releases/download/v#{version}/GlassPomodoro.zip"
+  url "https://github.com/AndresGM7/GlassPomodoro/releases/download/v#{version}/GlassPomodoro.zip"
   name "GlassPomodoro"
   desc "Pomodoro glassmorphism para macOS — GroovinApps"
-  homepage "https://github.com/TUUSUARIO/GlassPomodoro"
+  homepage "https://github.com/AndresGM7/GlassPomodoro"
 
   depends_on macos: ">= :sonoma"
 
