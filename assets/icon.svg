@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Fondo: gradiente noche -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a0d18"/>
+      <stop offset="1" stop-color="#141026"/>
+    </linearGradient>
+    <!-- Arco: seafoam → azul calmo (tema QUICK) -->
+    <linearGradient id="arc" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#73d9cc"/>
+      <stop offset="1" stop-color="#73a6f2"/>
+    </linearGradient>
+    <!-- Glow del arco -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="18" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/><feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softglow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/><feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Vidrio del núcleo -->
+    <radialGradient id="glass" cx="0.35" cy="0.3" r="1.0">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.16"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.02"/>
+    </radialGradient>
+    <!-- Aurora blobs -->
+    <radialGradient id="aur1" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#73d9cc" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#73d9cc" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="aur2" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#7373f2" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#7373f2" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Fondo squircle (estilo macOS Big Sur+) -->
+  <rect x="60" y="60" width="904" height="904" rx="200" fill="url(#bg)"/>
+
+  <!-- Aurora dentro del squircle -->
+  <g clip-path="inset(60 60 60 60 round 200)">
+    <circle cx="300" cy="280" r="340" fill="url(#aur1)"/>
+    <circle cx="740" cy="760" r="360" fill="url(#aur2)"/>
+  </g>
+
+  <!-- Anillo de ticks (72 ticks, mayores cada 6) -->
+  <g stroke-linecap="round">
+    <!-- generados: 24 visibles para legibilidad de ícono -->
+    <!-- ticks encendidos (arco ~65%) en seafoam, apagados en gris -->
+    <g id="ticks">
+      <!-- major ticks cada 90° -->
+      <line x1="512" y1="150" x2="512" y2="205" stroke="#73d9cc" stroke-width="14" filter="url(#softglow)"/>
+      <line x1="874" y1="512" x2="819" y2="512" stroke="#73d9cc" stroke-width="14" filter="url(#softglow)"/>
+      <line x1="512" y1="874" x2="512" y2="819" stroke="#73d9cc" stroke-width="14" filter="url(#softglow)"/>
+      <line x1="150" y1="512" x2="205" y2="512" stroke="#3a4152" stroke-width="14"/>
+      <!-- minor ticks 45° -->
+      <line x1="768" y1="256" x2="729" y2="295" stroke="#73d9cc" stroke-width="10" filter="url(#softglow)"/>
+      <line x1="768" y1="768" x2="729" y2="729" stroke="#73d9cc" stroke-width="10" filter="url(#softglow)"/>
+      <line x1="256" y1="768" x2="295" y2="729" stroke="#3a4152" stroke-width="10"/>
+      <line x1="256" y1="256" x2="295" y2="295" stroke="#3a4152" stroke-width="10"/>
+      <!-- ticks intermedios 22.5° -->
+      <line x1="650" y1="180" x2="629" y2="230" stroke="#73d9cc" stroke-width="8" filter="url(#softglow)"/>
+      <line x1="844" y1="374" x2="794" y2="395" stroke="#73d9cc" stroke-width="8" filter="url(#softglow)"/>
+      <line x1="844" y1="650" x2="794" y2="629" stroke="#73d9cc" stroke-width="8" filter="url(#softglow)"/>
+      <line x1="650" y1="844" x2="629" y2="794" stroke="#73d9cc" stroke-width="8" filter="url(#softglow)"/>
+      <line x1="374" y1="844" x2="395" y2="794" stroke="#3a4152" stroke-width="8"/>
+      <line x1="180" y1="650" x2="230" y2="629" stroke="#3a4152" stroke-width="8"/>
+      <line x1="180" y1="374" x2="230" y2="395" stroke="#3a4152" stroke-width="8"/>
+      <line x1="374" y1="180" x2="395" y2="230" stroke="#3a4152" stroke-width="8"/>
+    </g>
+  </g>
+
+  <!-- Track del arco -->
+  <circle cx="512" cy="512" r="240" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="30"/>
+
+  <!-- Arco de progreso ~65% (234°) con glow -->
+  <path d="M 512 272
+           A 240 240 0 1 1 315.5 650.5"
+        fill="none" stroke="url(#arc)" stroke-width="30" stroke-linecap="round"
+        filter="url(#glow)"/>
+
+  <!-- Cabezal luminoso -->
+  <circle cx="315.5" cy="650.5" r="22" fill="#ffffff" filter="url(#glow)"/>
+
+  <!-- Núcleo de vidrio -->
+  <circle cx="512" cy="512" r="185" fill="url(#glass)" stroke="#ffffff" stroke-opacity="0.25" stroke-width="3"/>
+
+  <!-- Tomate estilizado minimal: hoja + tiempo -->
+  <!-- "25" como marca del pomodoro -->
+  <text x="512" y="560" font-family="SF Mono, Menlo, monospace" font-size="150" font-weight="200"
+        fill="#ffffff" text-anchor="middle">25</text>
+  <!-- hoja (naturaleza — tu dominio) -->
+  <path d="M 512 340 q 30 -45 75 -40 q -10 48 -60 55 q 25 -30 45 -38 q -35 5 -60 23 z"
+        fill="#73d9a8" filter="url(#softglow)"/>
+</svg>

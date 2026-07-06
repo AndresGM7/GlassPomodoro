@@ -32,6 +32,7 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>1.0</string>
     <key>CFBundleVersion</key><string>1</string>
+    <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>LSMinimumSystemVersion</key><string>14.0</string>
     <key>NSHighResolutionCapable</key><true/>
     <key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
@@ -39,6 +40,9 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
 </dict>
 </plist>
 PLIST
+
+echo "→ Copying icon..."
+[ -f assets/AppIcon.icns ] && cp assets/AppIcon.icns "$APP_DIR/Contents/Resources/AppIcon.icns"
 
 echo "→ Ad-hoc code signing..."
 codesign --force --deep --sign - "$APP_DIR"
