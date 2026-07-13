@@ -1,16 +1,27 @@
 import SwiftUI
 import AppKit
 
+/// FIX bug #2: sin esto, macOS termina la app al cerrar la última ventana
+/// y el ícono desaparece de la barra de menú.
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false   // la app vive en el menu bar aunque cierres la ventana
+    }
+}
+
 @main
 struct GlassPomodoroApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var engine = TimerEngine()
+    @StateObject private var taskStore = TaskStore()
 
     var body: some Scene {
         // Ventana principal (id para reabrirla desde el menu bar)
         Window("GroovinApps Pomodoro", id: "main") {
             ContentView()
                 .environmentObject(engine)
-                .frame(minWidth: 520, minHeight: 720)
+                .environmentObject(taskStore)
+                .frame(minWidth: 560, minHeight: 780)
                 .preferredColorScheme(.dark)
         }
         .windowStyle(.hiddenTitleBar)
@@ -20,6 +31,7 @@ struct GlassPomodoroApp: App {
         MenuBarExtra {
             MenuBarView()
                 .environmentObject(engine)
+                .environmentObject(taskStore)
         } label: {
             // Lo que se ve en la barra: icono + tiempo restante
             HStack(spacing: 4) {

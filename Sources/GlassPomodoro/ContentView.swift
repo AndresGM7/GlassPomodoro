@@ -2,10 +2,11 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var engine: TimerEngine
+    @EnvironmentObject var taskStore: TaskStore
+    @State private var newTask = ""
 
     var body: some View {
         ZStack {
-            // Fondo temático — intensidad reactiva al progreso + pulso final
             ThematicBackground(
                 tint: engine.tint,
                 secondary: engine.secondaryTint,
@@ -14,13 +15,11 @@ struct ContentView: View {
                 finalStretch: engine.isFinalStretch
             )
 
-            VStack(spacing: 18) {
+            VStack(spacing: 14) {
                 header
-
-                // Selector de PRESET (25 / 45 / 90 — basados en evidencia)
+                statusStrip
                 presetPicker
 
-                // Dial central
                 TechDial(
                     progress: engine.progress,
                     timeString: engine.timeString,
@@ -30,129 +29,190 @@ struct ContentView: View {
                     isRunning: engine.isRunning,
                     finalStretch: engine.isFinalStretch
                 )
-                .frame(maxWidth: 360)
+                .frame(maxWidth: 330)
 
-                // Cita — SOLO en breaks (nunca durante focus, protege el flow)
+                focusStrip
                 quoteView
-
                 controls
-                sessionDots
+                Divider().overlay(Color.white.opacity(0.08))
+                taskPanel
             }
-            .padding(30)
-            .background(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(Color.black.opacity(0.22))          // translúcido real: el fondo SE VE
-                    .background(
-                        RoundedRectangle(cornerRadius: 28, style: .continuous)
-                            .fill(.ultraThinMaterial.opacity(0.5))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 28, style: .continuous)
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: [.white.opacity(0.5),
-                                             engine.tint.opacity(0.25),
-                                             .white.opacity(0.05)],
-                                    startPoint: .topLeading, endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 1
-                            )
-                    )
-                    .shadow(color: engine.tint.opacity(0.15), radius: 40)
-                    .shadow(color: .black.opacity(0.4), radius: 30, y: 14)
-            )
-            .padding(32)
+            .padding(26)
+            .background(panelBackground)
+            .padding(28)
         }
         .animation(.easeInOut(duration: 0.5), value: engine.phase)
         .animation(.easeInOut(duration: 0.4), value: engine.preset)
+        .animation(.easeInOut(duration: 0.25), value: taskStore.tasks)
     }
 
-    // MARK: - Subviews
+    // MARK: - Header (branding terminal-style)
 
     private var header: some View {
-        HStack {
+        HStack(alignment: .firstTextBaseline) {
             HStack(spacing: 0) {
                 Text("GROOVINAPPS")
                     .foregroundStyle(engine.tint)
                 Text("//")
-                    .foregroundStyle(.white.opacity(0.35))
+                    .foregroundStyle(.white.opacity(0.30))
                 Text("POMODORO")
-                    .foregroundStyle(.white.opacity(0.85))
+                    .foregroundStyle(.white.opacity(0.90))
             }
             .font(.system(size: 13, weight: .bold, design: .monospaced))
-            .tracking(3)
-            .shadow(color: engine.tint.opacity(0.5), radius: 8)
+            .tracking(2.5)
+            .shadow(color: engine.tint.opacity(0.4), radius: 8)
+
             Spacer()
-            // Deep work acumulado hoy
-            Text("\(engine.focusMinutesToday) min today")
-                .font(.system(size: 11, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.35))
+
+            Text("v1.1")
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.25))
         }
     }
 
-    /// Presets 25/45/90 con subtítulo del uso recomendado
+    /// Barra de estado tipo terminal financiero: métricas de la jornada
+    private var statusStrip: some View {
+        HStack(spacing: 0) {
+            metric("SESSIONS", "\(engine.completedFocusSessions)")
+            divider
+            metric("FOCUS TIME", "\(engine.focusMinutesToday)m")
+            divider
+            metric("TASKS", "\(taskStore.tasks.filter(\.done).count)/\(taskStore.tasks.count)")
+            divider
+            metric("MODE", engine.preset.rawValue)
+        }
+        .padding(.vertical, 7)
+        .padding(.horizontal, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.black.opacity(0.35))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+                )
+        )
+    }
+
+    private func metric(_ label: String, _ value: String) -> some View {
+        HStack(spacing: 6) {
+            Text(label)
+                .font(.system(size: 8.5, weight: .medium, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.35))
+            Text(value)
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .foregroundStyle(engine.tint)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var divider: some View {
+        Rectangle().fill(Color.white.opacity(0.10)).frame(width: 1, height: 14)
+    }
+
+    // MARK: - Presets
+
     private var presetPicker: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             ForEach(SessionPreset.allCases, id: \.self) { preset in
                 Button {
                     engine.apply(preset: preset)
                 } label: {
-                    VStack(spacing: 3) {
-                        HStack(spacing: 5) {
+                    VStack(spacing: 2) {
+                        HStack(spacing: 4) {
                             Text(preset.rawValue)
-                                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                .font(.system(size: 10.5, weight: .bold, design: .monospaced))
                             Text("\(Int(preset.focusMinutes))′")
-                                .font(.system(size: 11, weight: .light, design: .monospaced))
+                                .font(.system(size: 10.5, weight: .light, design: .monospaced))
                         }
                         Text(preset.subtitle)
-                            .font(.system(size: 8, design: .monospaced))
-                            .opacity(0.6)
+                            .font(.system(size: 7.5, design: .monospaced))
+                            .opacity(0.55)
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
+                    .padding(.horizontal, 13)
+                    .padding(.vertical, 7)
                     .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(engine.preset == preset ? preset.tint.opacity(0.20) : .white.opacity(0.05))
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            .fill(engine.preset == preset ? preset.tint.opacity(0.18) : .white.opacity(0.04))
                     )
                     .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
                             .strokeBorder(
-                                engine.preset == preset ? preset.tint.opacity(0.8) : preset.tint.opacity(0.25),
+                                engine.preset == preset ? preset.tint.opacity(0.75) : preset.tint.opacity(0.18),
                                 lineWidth: 1
                             )
                     )
-                    .foregroundStyle(engine.preset == preset ? preset.tint : .white.opacity(0.55))
+                    .foregroundStyle(engine.preset == preset ? preset.tint : .white.opacity(0.5))
                 }
                 .buttonStyle(.plain)
             }
         }
     }
 
-    /// Cita visible solo durante breaks — el focus se protege
+    // MARK: - Focus actual (la intención de ESTA sesión)
+
     @ViewBuilder
-    private var quoteView: some View {
-        if engine.phase != .focus {
-            VStack(spacing: 4) {
-                Text("\u{201C}\(engine.currentQuote.text)\u{201D}")
-                    .font(.system(size: 12, weight: .light, design: .serif))
-                    .italic()
-                    .multilineTextAlignment(.center)
-                Text("— \(engine.currentQuote.author)")
-                    .font(.system(size: 10, design: .monospaced))
-                    .opacity(0.5)
+    private var focusStrip: some View {
+        if let task = taskStore.focusedTask {
+            HStack(spacing: 8) {
+                Image(systemName: "scope")
+                    .font(.system(size: 11))
+                    .foregroundStyle(engine.tint)
+                Text(task.title)
+                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.85))
+                    .lineLimit(1)
+                Spacer()
+                Button {
+                    taskStore.toggle(task)
+                } label: {
+                    Image(systemName: "checkmark.circle")
+                        .font(.system(size: 14))
+                        .foregroundStyle(engine.tint.opacity(0.8))
+                }
+                .buttonStyle(.plain)
+                .help("Marcar completada")
             }
-            .foregroundStyle(.white.opacity(0.7))
-            .padding(.horizontal, 20)
-            .transition(.opacity.combined(with: .move(edge: .bottom)))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(
+                Capsule()
+                    .fill(engine.tint.opacity(0.10))
+                    .overlay(Capsule().strokeBorder(engine.tint.opacity(0.35), lineWidth: 1))
+            )
+            .transition(.opacity)
         } else {
-            // Espaciador invisible para que el layout no salte
-            Color.clear.frame(height: 30)
+            Text("sin foco — agregá una tarea abajo")
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.25))
+                .padding(.vertical, 8)
         }
     }
 
+    // MARK: - Quote (solo breaks)
+
+    @ViewBuilder
+    private var quoteView: some View {
+        if engine.phase != .focus {
+            VStack(spacing: 3) {
+                Text("\u{201C}\(engine.currentQuote.text)\u{201D}")
+                    .font(.system(size: 11.5, weight: .light, design: .serif))
+                    .italic()
+                    .multilineTextAlignment(.center)
+                Text("— \(engine.currentQuote.author)")
+                    .font(.system(size: 9.5, design: .monospaced))
+                    .opacity(0.5)
+            }
+            .foregroundStyle(.white.opacity(0.7))
+            .padding(.horizontal, 18)
+            .transition(.opacity.combined(with: .move(edge: .bottom)))
+        }
+    }
+
+    // MARK: - Controls
+
     private var controls: some View {
-        HStack(spacing: 18) {
-            GlassButton(icon: "arrow.counterclockwise", size: 46, tint: .white.opacity(0.7)) {
+        HStack(spacing: 16) {
+            GlassButton(icon: "arrow.counterclockwise", size: 42, tint: .white.opacity(0.65)) {
                 engine.reset()
             }
 
@@ -167,36 +227,145 @@ struct ContentView: View {
                                 startPoint: .topLeading, endPoint: .bottomTrailing
                             )
                         )
-                        .frame(width: 72, height: 72)
-                        .shadow(color: engine.tint.opacity(0.6), radius: 16, y: 4)
+                        .frame(width: 64, height: 64)
+                        .shadow(color: engine.tint.opacity(0.55), radius: 14, y: 4)
                     Image(systemName: engine.isRunning ? "pause.fill" : "play.fill")
-                        .font(.system(size: 26, weight: .bold))
+                        .font(.system(size: 23, weight: .bold))
                         .foregroundStyle(.black.opacity(0.8))
                 }
             }
             .buttonStyle(.plain)
 
-            GlassButton(icon: "forward.end", size: 46, tint: .white.opacity(0.7)) {
+            GlassButton(icon: "forward.end", size: 42, tint: .white.opacity(0.65)) {
                 engine.skip()
             }
         }
     }
 
-    private var sessionDots: some View {
-        HStack(spacing: 10) {
-            ForEach(0..<engine.sessionsUntilLongBreak, id: \.self) { i in
-                let filled = i < (engine.completedFocusSessions % engine.sessionsUntilLongBreak)
-                    || (engine.completedFocusSessions > 0 && engine.completedFocusSessions % engine.sessionsUntilLongBreak == 0)
-                Circle()
-                    .fill(filled ? engine.tint : .white.opacity(0.12))
-                    .frame(width: 8, height: 8)
-                    .shadow(color: filled ? engine.tint.opacity(0.8) : .clear, radius: 5)
+    // MARK: - Task panel (patrón Session: lista corta, 1 foco)
+
+    private var taskPanel: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("TODAY")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .tracking(2)
+                    .foregroundStyle(.white.opacity(0.4))
+                Spacer()
+                if taskStore.tasks.contains(where: \.done) {
+                    Button("limpiar hechas") { taskStore.clearDone() }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.3))
+                }
             }
-            Text("\(engine.completedFocusSessions) sessions")
-                .font(.system(size: 10, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.35))
-                .padding(.leading, 6)
+
+            // Quick add (patrón Todoist: 1 campo, Enter)
+            HStack(spacing: 8) {
+                Image(systemName: "plus")
+                    .font(.system(size: 10))
+                    .foregroundStyle(engine.tint.opacity(0.7))
+                TextField("nueva intención… (Enter)", text: $newTask)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 11.5, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.85))
+                    .onSubmit {
+                        taskStore.add(newTask)
+                        newTask = ""
+                    }
+                if taskStore.tasks.count >= TaskStore.maxTasks {
+                    Text("máx \(TaskStore.maxTasks)")
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundStyle(.orange.opacity(0.6))
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(Color.black.opacity(0.3))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 7, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+                    )
+            )
+
+            // Lista (máx 7 — scroll no debería hacer falta)
+            ForEach(taskStore.tasks) { task in
+                HStack(spacing: 9) {
+                    Button {
+                        taskStore.toggle(task)
+                    } label: {
+                        Image(systemName: task.done ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 13))
+                            .foregroundStyle(task.done ? engine.tint : .white.opacity(0.3))
+                    }
+                    .buttonStyle(.plain)
+
+                    Text(task.title)
+                        .font(.system(size: 11.5, design: .monospaced))
+                        .foregroundStyle(task.done ? .white.opacity(0.3) : .white.opacity(0.8))
+                        .strikethrough(task.done, color: .white.opacity(0.3))
+                        .lineLimit(1)
+
+                    Spacer()
+
+                    if taskStore.focusedTaskID == task.id && !task.done {
+                        Text("FOCUS")
+                            .font(.system(size: 8, weight: .bold, design: .monospaced))
+                            .foregroundStyle(engine.tint)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Capsule().fill(engine.tint.opacity(0.15)))
+                    } else if !task.done {
+                        Button {
+                            taskStore.focus(task)
+                        } label: {
+                            Image(systemName: "scope")
+                                .font(.system(size: 10))
+                                .foregroundStyle(.white.opacity(0.25))
+                        }
+                        .buttonStyle(.plain)
+                        .help("Hacer foco de la sesión")
+                    }
+
+                    Button {
+                        taskStore.remove(task)
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 8))
+                            .foregroundStyle(.white.opacity(0.2))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 4)
+            }
         }
+    }
+
+    // MARK: - Panel background
+
+    private var panelBackground: some View {
+        RoundedRectangle(cornerRadius: 24, style: .continuous)
+            .fill(Color.black.opacity(0.25))
+            .background(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(.ultraThinMaterial.opacity(0.45))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [.white.opacity(0.4),
+                                     engine.tint.opacity(0.2),
+                                     .white.opacity(0.04)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            )
+            .shadow(color: engine.tint.opacity(0.12), radius: 36)
+            .shadow(color: .black.opacity(0.45), radius: 28, y: 12)
     }
 }
 
@@ -215,7 +384,7 @@ struct GlassButton: View {
                 .foregroundStyle(tint)
                 .frame(width: size, height: size)
                 .background(Circle().fill(.ultraThinMaterial))
-                .overlay(Circle().strokeBorder(.white.opacity(0.18), lineWidth: 1))
+                .overlay(Circle().strokeBorder(.white.opacity(0.16), lineWidth: 1))
         }
         .buttonStyle(.plain)
     }
