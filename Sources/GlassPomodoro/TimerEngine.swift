@@ -105,6 +105,10 @@ final class TimerEngine: ObservableObject {
     @Published private(set) var isRunning = false
     @Published private(set) var completedFocusSessions = 0
     @Published private(set) var currentQuote: FocusQuote = .random()
+    @Published var justCompletedSession = false   // dispara celebración breve
+
+    /// callback para registrar sesiones en StatsStore (se conecta en la App)
+    var onFocusCompleted: ((Int) -> Void)?
 
     private var timer: Timer?
     private var endDate: Date?
@@ -216,6 +220,12 @@ final class TimerEngine: ObservableObject {
         switch phase {
         case .focus:
             completedFocusSessions += 1
+            onFocusCompleted?(Int(preset.focusMinutes))   // registra en stats
+            justCompletedSession = true
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(4))
+                justCompletedSession = false
+            }
             phase = (completedFocusSessions % sessionsUntilLongBreak == 0) ? .longBreak : .shortBreak
             currentQuote = .random()
         case .shortBreak, .longBreak:

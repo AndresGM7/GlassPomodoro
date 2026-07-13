@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject var engine: TimerEngine
     @EnvironmentObject var taskStore: TaskStore
+    @EnvironmentObject var stats: StatsStore
     @State private var newTask = ""
 
     var body: some View {
@@ -15,21 +16,53 @@ struct ContentView: View {
                 finalStretch: engine.isFinalStretch
             )
 
-            VStack(spacing: 14) {
+            VStack(spacing: 13) {
                 header
                 statusStrip
+                motivationRow
                 presetPicker
 
-                TechDial(
-                    progress: engine.progress,
-                    timeString: engine.timeString,
-                    phaseLabel: engine.phase.rawValue,
-                    tint: engine.tint,
-                    secondary: engine.secondaryTint,
-                    isRunning: engine.isRunning,
-                    finalStretch: engine.isFinalStretch
-                )
-                .frame(maxWidth: 330)
+                ZStack {
+                    TechDial(
+                        progress: engine.progress,
+                        timeString: engine.timeString,
+                        phaseLabel: engine.phase.rawValue,
+                        tint: engine.tint,
+                        secondary: engine.secondaryTint,
+                        isRunning: engine.isRunning,
+                        finalStretch: engine.isFinalStretch
+                    )
+                    .frame(maxWidth: 310)
+
+                    // HUD brackets sci-fi enmarcando el dial
+                    HUDBrackets(tint: engine.tint, pulse: engine.isRunning)
+                        .frame(maxWidth: 350, maxHeight: 350)
+
+                    // Celebración al completar sesión
+                    if engine.justCompletedSession {
+                        VStack(spacing: 4) {
+                            Image(systemName: "checkmark.seal.fill")
+                                .font(.system(size: 34))
+                                .foregroundStyle(.green)
+                                .shadow(color: .green.opacity(0.8), radius: 12)
+                            Text("SESSION COMPLETE")
+                                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                .tracking(2)
+                                .foregroundStyle(.white)
+                        }
+                        .padding(20)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(Color.black.opacity(0.75))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .strokeBorder(Color.green.opacity(0.5), lineWidth: 1)
+                                )
+                        )
+                        .transition(.scale.combined(with: .opacity))
+                    }
+                }
+                .animation(.spring(duration: 0.4), value: engine.justCompletedSession)
 
                 focusStrip
                 quoteView
@@ -37,13 +70,49 @@ struct ContentView: View {
                 Divider().overlay(Color.white.opacity(0.08))
                 taskPanel
             }
-            .padding(26)
+            .padding(24)
             .background(panelBackground)
-            .padding(28)
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Color.clear)
+                    .overlay(Scanlines().clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous)))
+                    .allowsHitTesting(false)
+            )
+            .padding(26)
         }
         .animation(.easeInOut(duration: 0.5), value: engine.phase)
         .animation(.easeInOut(duration: 0.4), value: engine.preset)
         .animation(.easeInOut(duration: 0.25), value: taskStore.tasks)
+    }
+
+    // MARK: - Motivation row (streak + daily goal + weekly activity)
+
+    private var motivationRow: some View {
+        HStack(spacing: 14) {
+            StreakBadge(streak: stats.streak, tint: engine.tint)
+            Spacer()
+            GoalRing(
+                done: stats.sessionsToday(sessionMinutes: Int(engine.preset.focusMinutes)),
+                goal: stats.dailyGoalSessions,
+                tint: engine.tint
+            )
+            Spacer()
+            ActivityBars(
+                values: stats.last7Days,
+                goalMinutes: stats.dailyGoalSessions * Int(engine.preset.focusMinutes),
+                tint: engine.tint
+            )
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.black.opacity(0.3))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.07), lineWidth: 1)
+                )
+        )
     }
 
     // MARK: - Header (branding terminal-style)

@@ -14,6 +14,7 @@ struct GlassPomodoroApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var engine = TimerEngine()
     @StateObject private var taskStore = TaskStore()
+    @StateObject private var stats = StatsStore()
 
     var body: some Scene {
         // Ventana principal (id para reabrirla desde el menu bar)
@@ -21,8 +22,14 @@ struct GlassPomodoroApp: App {
             ContentView()
                 .environmentObject(engine)
                 .environmentObject(taskStore)
-                .frame(minWidth: 560, minHeight: 780)
+                .environmentObject(stats)
+                .frame(minWidth: 560, minHeight: 820)
                 .preferredColorScheme(.dark)
+                .onAppear {
+                    engine.onFocusCompleted = { minutes in
+                        stats.record(minutes: minutes)
+                    }
+                }
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
@@ -32,6 +39,7 @@ struct GlassPomodoroApp: App {
             MenuBarView()
                 .environmentObject(engine)
                 .environmentObject(taskStore)
+                .environmentObject(stats)
         } label: {
             // Lo que se ve en la barra: icono + tiempo restante
             HStack(spacing: 4) {
