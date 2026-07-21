@@ -21,6 +21,7 @@ struct ContentView: View {
                 statusStrip
                 motivationRow
                 presetPicker
+                tagStrip
 
                 ZStack {
                     TechDial(
@@ -133,7 +134,7 @@ struct ContentView: View {
 
             Spacer()
 
-            Text("v1.1")
+            Text("v1.4")
                 .font(.system(size: 10, design: .monospaced))
                 .foregroundStyle(.white.opacity(0.25))
         }
@@ -215,6 +216,47 @@ struct ContentView: View {
                 .buttonStyle(.plain)
             }
         }
+    }
+
+    // MARK: - Tag de skill (v1.4 — deliberate practice: qué estás practicando)
+
+    /// Selector del skill que se practica en esta sesión (Ericsson: well-defined goals).
+    /// El tag persiste como default entre sesiones y lanzamientos.
+    private var tagStrip: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "tag")
+                .font(.system(size: 10))
+                .foregroundStyle(engine.tint.opacity(0.7))
+            Text("SKILL")
+                .font(.system(size: 8.5, weight: .medium, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.35))
+            Picker("", selection: $stats.currentTag) {
+                ForEach(StatsStore.roadmapTags, id: \.self) { tag in
+                    Text(tag).tag(tag)
+                }
+            }
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .tint(engine.tint)
+            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+
+            Spacer()
+
+            // minutos de la semana en el tag activo — feedback inmediato (Csikszentmihalyi)
+            Text("\(stats.minutesThisWeek(tag: stats.currentTag))m esta semana")
+                .font(.system(size: 9.5, design: .monospaced))
+                .foregroundStyle(engine.tint.opacity(0.75))
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.black.opacity(0.3))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.07), lineWidth: 1)
+                )
+        )
     }
 
     // MARK: - Focus actual (la intención de ESTA sesión)

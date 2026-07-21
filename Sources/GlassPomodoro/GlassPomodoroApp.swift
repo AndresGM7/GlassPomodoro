@@ -26,8 +26,12 @@ struct GlassPomodoroApp: App {
                 .frame(minWidth: 560, minHeight: 820)
                 .preferredColorScheme(.dark)
                 .onAppear {
-                    engine.onFocusCompleted = { minutes in
-                        stats.record(minutes: minutes)
+                    engine.onFocusCompleted = { [weak engine, weak taskStore, weak stats] minutes in
+                        stats?.record(
+                            minutes: minutes,
+                            preset: engine?.preset.rawValue ?? "",
+                            intention: taskStore?.focusedTask?.title
+                        )
                     }
                 }
         }
@@ -47,6 +51,18 @@ struct GlassPomodoroApp: App {
                 Text(engine.isRunning || engine.progress > 0 ? engine.timeString : "")
                     .font(.system(.body, design: .monospaced))
             }
+            // El label del menu bar se renderiza SIEMPRE al lanzar (la ventana no).
+            // Registrar acá garantiza que las sesiones se guarden aunque la
+            // ventana principal nunca se abra.
+            .onAppear {
+                engine.onFocusCompleted = { [weak engine, weak taskStore, weak stats] minutes in
+                    stats?.record(
+                        minutes: minutes,
+                        preset: engine?.preset.rawValue ?? "",
+                        intention: taskStore?.focusedTask?.title
+                    )
+                }
+            }
         }
         .menuBarExtraStyle(.window)
     }
@@ -55,6 +71,7 @@ struct GlassPomodoroApp: App {
 /// Vista compacta que vive en el menu bar
 struct MenuBarView: View {
     @EnvironmentObject var engine: TimerEngine
+    @EnvironmentObject var stats: StatsStore
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -67,6 +84,25 @@ struct MenuBarView: View {
             Text(engine.timeString)
                 .font(.system(size: 34, weight: .thin, design: .monospaced))
                 .monospacedDigit()
+
+            // Tag de skill activo (v1.4) — cambiable sin abrir la ventana
+            HStack(spacing: 6) {
+                Image(systemName: "tag")
+                    .font(.system(size: 9))
+                    .foregroundStyle(engine.tint.opacity(0.7))
+                Picker("", selection: $stats.currentTag) {
+                    ForEach(StatsStore.roadmapTags, id: \.self) { tag in
+                        Text(tag).tag(tag)
+                    }
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .controlSize(.small)
+                Spacer()
+                Text("\(stats.minutesThisWeek(tag: stats.currentTag))m/sem")
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            }
 
             // Progreso lineal compacto
             GeometryReader { geo in
