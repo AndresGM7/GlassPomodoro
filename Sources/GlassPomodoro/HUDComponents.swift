@@ -7,7 +7,8 @@ struct HUDBrackets: View {
     let pulse: Bool
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { timeline in
+        // paused: con pulse=false el alpha es constante (0.4) — no hay nada que animar
+        TimelineView(.animation(minimumInterval: 1.0 / 20.0, paused: !pulse)) { timeline in
             let t = timeline.date.timeIntervalSinceReferenceDate
             let alpha = pulse ? 0.55 + 0.25 * sin(t * 1.4) : 0.4
             GeometryReader { geo in

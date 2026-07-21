@@ -11,7 +11,9 @@ struct ThematicBackground: View {
     var finalStretch: Bool = false   // últimos 60s: pulso suave global
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+        // paused: cuando el timer no corre, congela el redibujado (30fps → 0)
+        // y el CPU baja de ~40% a ~0% en idle. FIX bug CPU.
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: !isRunning)) { timeline in
             let t = timeline.date.timeIntervalSinceReferenceDate
             // Pulso final: oscilación lenta de intensidad (aviso, no alarma)
             let effIntensity = finalStretch

@@ -12,7 +12,8 @@ struct TechDial: View {
     let finalStretch: Bool   // últimos 60s: pulso suave, no alarma
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+        // paused: sin timer corriendo no hay respiración que animar → 0 fps idle
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: !isRunning)) { timeline in
             let t = timeline.date.timeIntervalSinceReferenceDate
             // Pulso sereno: respiración de 3s normal, 1.6s en final stretch
             let breatheSpeed = finalStretch ? 2.0 : 1.0
